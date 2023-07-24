@@ -1,5 +1,5 @@
 # PU ExtraTrees - A Random Forest Classifier for PU Learning
-from tree import PUExtraTree
+from .tree import PUExtraTree
 from joblib import Parallel, delayed
 import scipy
 import numpy as np
@@ -54,7 +54,7 @@ class PUExtraTrees:
         self.current_max_depth = 0
         self.is_trained = False # indicate if tree empty/trained
     
-    def train_tree(self, P = None, U = None, N = None, pi = None):
+    def train_tree(self, P = None, U = None, N = None, alpha = None):
         """
         Train a single decision tree.
 
@@ -66,7 +66,7 @@ class PUExtraTrees:
             Unlabelled training samples.
         N : array-like of shape (n_n, n_features), default=None
             Training samples from the negative class if performing supervised (PN) learning.
-        pi : float
+        alpha : float
             Prior probability that an example belongs to the positive class.
 
         Returns
@@ -81,7 +81,7 @@ class PUExtraTrees:
                         min_samples_leaf = self.min_samples_leaf, 
                         max_features = self.max_features, 
                         max_candidates = self.max_candidates)
-        g.fit(P = P, U = U, N = N, pi = pi)
+        g.fit(P = P, U = U, N = N, alpha = alpha)
         return g
     
     def predict_tree(self, g, X):
@@ -101,30 +101,37 @@ class PUExtraTrees:
         """
         return g.predict(X)
     
-    def fit(self, P = None, U = None, N = None, pi = None):
+    def fit(self, X, y, N=None, alpha=None):
         """
         Train the random forest.
 
         Parameters
         ----------
-        pi : float
+        alpha: float
             Prior probability that an example belongs to the positive class. 
-        P : array-like of shape (n_p, n_features), default=None
-            Training samples from the positive class.
-        U : array-like of shape (n_u, n_features), default=None
-            Unlabeled training samples.
-        N : array-like of shape (n_n, n_features), default=None
+        X: array-like of shape (n_X, n_features), default=None
+            Training samples of the positive class and unlabeled samples.
+        N: array-like of shape (n_n, n_features), default=None
             Training samples from the negative class if performing PN learning.
-
         Returns
         -------
         self
             Returns instance of self.
 
         """
-        self.gs = Parallel(n_jobs = min(self.n_jobs, self.n_estimators), prefer="threads")(delayed(self.train_tree)(P = P, U = U, N = N, pi = pi) for i in range(self.n_estimators))
+        y = np.where(y == 0, -1, y)
+        
+        # If we do not know the class prior, assume it is the proportion of positive examples in the training set
+        if alpha == None:
+            alpha = np.mean(y == 1)
+        
+        P = X[y == 1]
+        U = X[y == -1]
+
+        self.gs = Parallel(n_jobs = min(self.n_jobs, self.n_estimators), prefer="threads")(delayed(self.train_tree)(P = P, U = U, N = N, alpha = alpha) for i in range(self.n_estimators))
         self.is_trained = True
         return self
+
     
     def predict(self, X):
         """
@@ -143,7 +150,9 @@ class PUExtraTrees:
 
         """
         self.preds = Parallel(n_jobs = min(self.n_jobs, self.n_estimators), prefer="threads")(delayed(self.predict_tree)(g, X) for g in self.gs)
-        return scipy.stats.mode(np.array(self.preds), axis = 0, keepdims = False)[0]
+        preds = scipy.stats.mode(np.array(self.preds), axis = 0, keepdims = False)[0]
+        preds = np.where(preds == -1, 0, preds)
+        return preds
     
     def n_leaves(self, tree):
         """

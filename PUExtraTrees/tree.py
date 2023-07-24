@@ -143,7 +143,7 @@ class PUExtraTree:
         Parameters
         ----------
         nodes : dictionary
-            Dictionary describing the trained decision tree. Typically output from self.nodes.
+            Dictionary describing the trained decision tree. Tyalphacally output from self.nodes.
 
         Returns
         -------
@@ -157,13 +157,13 @@ class PUExtraTree:
     
 
 
-    def fit(self, pi, P = None, U = None, N = None):
+    def fit(self, alpha, P = None, U = None, N = None):
         """
         Fit the decision tree.
 
         Parameters
         ----------
-        pi : float
+        alpha : float
             Prior probability that an example belongs to the positive class. 
         P : array-like of shape (n_p, n_features), default=None
             Training samples from the positive class.
@@ -191,10 +191,10 @@ class PUExtraTree:
         n_p = (y == 1).sum()
         n_u = (y == 0).sum()
         n_n = (y == -1).sum()
-        self.pi = pi
+        self.alpha = alpha
         
-        if self.pi is None:
-            print('please specify pi')
+        if self.alpha is None:
+            print('please specify alpha')
                 
         if self.max_features == 'sqrt':
             self.max_features = int(np.ceil(np.sqrt(X.shape[1])))
@@ -227,7 +227,7 @@ class PUExtraTree:
         def impurity_node(y_sigma):
             # impurity of single node
             if self.risk_estimator in ["uPU", "nnPU"]:
-                Wp = (y_sigma == 1).sum() * self.pi/n_p
+                Wp = (y_sigma == 1).sum() * self.alpha/n_p
                 Wn = (y_sigma == 0).sum()/n_u - Wp
                 
                 if Wp + Wn == 0:
@@ -236,8 +236,8 @@ class PUExtraTree:
                     vstar = Wp/(Wp + Wn)
                     
             elif self.risk_estimator in ['PN']:
-                Wp = (y_sigma == 1).sum() * self.pi/n_p
-                Wn = (y_sigma == -1).sum() * (1-self.pi)/n_n
+                Wp = (y_sigma == 1).sum() * self.alpha/n_p
+                Wn = (y_sigma == -1).sum() * (1-self.alpha)/n_n
                 
                 if Wp + Wn == 0:
                     vstar = float('inf')
@@ -273,7 +273,7 @@ class PUExtraTree:
 
         def regional_prediction_function(y_sigma):            
             if self.risk_estimator in ["uPU", "nnPU"]:
-                Wp = (y_sigma == 1).sum() * self.pi/n_p
+                Wp = (y_sigma == 1).sum() * self.alpha/n_p
                 Wn = (y_sigma == 0).sum()/n_u - Wp
                 
                 if Wp + Wn == 0:
@@ -282,8 +282,8 @@ class PUExtraTree:
                     vstar = Wp/(Wp + Wn)
             
             elif self.risk_estimator in ["PN"]:
-                Wp = (y_sigma == 1).sum() * self.pi/n_p
-                Wn = (y_sigma == -1).sum() * (1-self.pi)/n_n
+                Wp = (y_sigma == 1).sum() * self.alpha/n_p
+                Wn = (y_sigma == -1).sum() * (1-self.alpha)/n_n
                 
                 if Wp + Wn == 0:
                     vstar = float('inf')
@@ -299,7 +299,7 @@ class PUExtraTree:
             
 
         def construct_subtree(node, sigma):                
-            # first check stopping criteria
+            # first check stopalphang criteria
             impurity = impurity_node(y[sigma])
             
             # check node pure
@@ -336,7 +336,7 @@ class PUExtraTree:
                     if att_ptp[i] > 0:
                         atts += [i]
                 
-                # ranomly pick candiates attributes 
+                # ranomly alphack candiates attributes 
                 attributes = np.random.choice(atts, size = min(self.max_features, len(atts)), replace = False)
                 candidates = []
                 candidate_attributes = []

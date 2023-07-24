@@ -1,6 +1,6 @@
 import numpy as np
 from sklearn.datasets import fetch_openml
-from trees import PUExtraTrees
+from PUExtraTrees.trees import PUExtraTrees
 import matplotlib.pyplot as plt
 
 X, y = fetch_openml('mnist_784', return_X_y = True, as_frame = False)
@@ -8,7 +8,7 @@ y = y.astype(np.int8)
 y[y != 0] = -1 # 1 -> 9 forms N class
 y[y == 0] = 1 # 0 forms P class
 
-pi = (y == 1).mean()
+alpha = (y == 1).mean()
 X_train, y_train, X_test, y_test = X[:60000], y[:60000], X[60000:], y[60000:]
 
 g = PUExtraTrees(n_estimators = 10, 
@@ -20,7 +20,7 @@ g = PUExtraTrees(n_estimators = 10,
                  max_candidates = 1, 
                  n_jobs = 4)
 
-g.fit(P = X_train[y_train == 1], N = X_train[y_train == -1], pi = pi)
+g.fit(P = X_train[y_train == 1], N = X_train[y_train == -1], alpha = alpha)
 predictions = g.predict(X_test)
 
 TP = (predictions[y_test == 1] == 1).sum()
